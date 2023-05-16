@@ -5,6 +5,7 @@ from django.contrib import messages
 from .models import *
 from django.contrib.auth.decorators import login_required
 from itertools import chain
+import random
 
 
 
@@ -31,8 +32,39 @@ def index(request):
            
         feed_list = list(chain(*feed))    
         
-        posts = Post.objects.all()
-        return render(request, 'index.html', {'user_profile': user_profile,'posts':feed_list})
+        # user suggestion stars
+        all_users = User.objects.all()
+        users_following_all = []
+        
+        for user in user_following:
+            user_list = User.objects.get(username=user.user.username)
+            users_following_all.append(user_list)
+            
+        new_suggestions_list  =[x for x in list(all_users) if x not in list(users_following_all)] 
+        current_user = User.objects.filter(username=request.user.username)
+        final_suggestions_list = [x for x in list(new_suggestions_list) if x not in list(current_user)]
+        random.shuffle(final_suggestions_list)
+        
+        username_profile=[]
+        username_profile_list=[]
+        
+        for users in  final_suggestions_list:
+            username_profile.append(users.id)
+            
+        for ids in username_profile:
+            profile_lists = Profile.objects.filter(id_user=ids)
+            username_profile_list.append(profile_lists)
+            
+        suggestions_username_profile_list = list(chain(*username_profile_list))  
+        
+        #comments
+        comments_list=[]
+        for post in feed_list:
+           comment = Comment.objects.filter(post=post)
+           comments_list.append(comment)
+        comments_list=list(chain(*comments_list))    
+        
+        return render(request, 'index.html', {'user_profile': user_profile,'posts':feed_list,'comments': comments_list ,'suggestions_username_profile_list':suggestions_username_profile_list[:4]})
     
         
 
@@ -121,7 +153,42 @@ def upload(request):
         return redirect('/')  
     else:
         return redirect('/')
-    return HttpResponse('<h1>Upload Post</h1>')
+
+@login_required(login_url='signin')
+def delete_post(request, post_id):
+    try:
+        post = Post.objects.get(pk=post_id)
+        # Check if the user is the owner of the post
+        if post.user == request.user:
+            post.delete()
+    except Post.DoesNotExist:
+        pass
+    return redirect('/profile/' +request.user.username )
+
+
+
+@login_required(login_url='signin')
+def delete_comment(request, comment_id):
+    try:
+        comment = Comment.objects.get(pk=comment_id)
+        # Check if the user is the owner of the post
+        if comment.user == request.user:
+            comment.delete()
+    except Post.DoesNotExist:
+        pass
+    return redirect('/')
+
+
+
+@login_required(login_url='signin')
+def edit_post(request, post_id):
+    if request.method == 'POST':
+        post = Post.objects.get(post_id=post_id)
+        post.caption = request.POST.get('caption')
+        post.save()
+        return redirect('/profile/' +request.user.username )
+    else:
+        return redirect('/profile/' +request.user.username ) 
 
 @login_required(login_url='signin')
 def like(request):
@@ -145,6 +212,22 @@ def like(request):
         post.save()
         return redirect('/')
 
+@login_required(login_url='signin')
+def add_comment(request, post_id):
+    if request.method == 'POST':
+        post = Post.objects.get(post_id=post_id)
+        user = request.user
+        text = request.POST.get('comment_text')
+        profile = Profile.objects.get(user=user)
+
+        new_comment = Comment.objects.create(post=post, user=user,profile=profile ,text=text)
+        new_comment.save()
+
+        return redirect('/')
+    else:
+        return redirect('/')
+
+
 @login_required(login_url='signin')    
 def profile(request, pk):
     user_object = User.objects.get(username=pk)
@@ -163,7 +246,13 @@ def profile(request, pk):
     user_followers  = len(FollowersCount.objects.filter(user=user))    
     user_following = len(FollowersCount.objects.filter(follower=pk))
     
-    
+    #view comments
+    comments_list=[]
+    for post in user_posts:
+        comment = Comment.objects.filter(post=post)
+        comments_list.append(comment)
+        
+    comments_list=list(chain(*comments_list))     
     context = {
         'user_object': user_object,
         'user_profile':user_profile,
@@ -172,6 +261,7 @@ def profile(request, pk):
         'button_text': button_text,
         'user_followers': user_followers,
         'user_following': user_following,
+        'comments': comments_list,
     }
     return render(request, 'profile.html',context)
 
@@ -187,7 +277,6 @@ def follow(request):
             delete_follower.delete()
             return redirect('/profile/' +username)
         else:
-            print('----------------------------------------------------')
             new_follower = FollowersCount.objects.create(follower=follower,user=user)
             new_follower.save()
             return redirect('/profile/' +username) 
@@ -214,4 +303,11 @@ def search(request):
             username_profile_list.append(profile_lists)
         username_profile_list = list(chain(*username_profile_list))    
     return render(request, 'search.html', {'user_profile':user_profile, 'username_profile_list':username_profile_list})
+
+
+
+
+
+
+
 

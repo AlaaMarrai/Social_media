@@ -19,7 +19,7 @@ button {
 }
 
 span.button, button.button {
-  background-color: #be185d;
+  background-color: #333333;
   top: 0;
   color: #fff;
   position: relative;
@@ -40,7 +40,7 @@ span.button, button.button {
 }
 
 input[type="button"], input[type="submit"] {
-  background-color: #be185d;
+  background-color: #333333;
   top: 0;
   padding: 10px 20px;
   line-height: 24px;
@@ -60,7 +60,7 @@ input[type="button"], input[type="submit"] {
 }
 
 a.button {
-  background-color: #be185d;
+  background-color: #333333;
   top: 0;
   padding: 8px 18px;
   line-height: 22px;

@@ -20,11 +20,11 @@ User  = get_user_model()
 
 class Profile(models.Model):
     profile_id = models.AutoField(primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    id_user = models.IntegerField(null=True, blank=True, default=None)
     profile_pic = models.ImageField(upload_to='profile_images', default='blank-profile-picture.png')
     bio = models.TextField(null=True, blank=True)
     location = models.CharField(max_length=30, null=True, blank=True)
-    id_user = models.IntegerField(null=True, blank=True, default=None)
 
     def save(self, *args, **kwargs):
         if self.id_user is None:
@@ -48,6 +48,19 @@ class Post(models.Model):
         
     def __str__(self):
         return self.user.username   
+ 
+ 
+class Comment(models.Model):
+    comment_id = models.AutoField(primary_key=True)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE,default=None)
+    text = models.TextField()
+    created_at = models.DateTimeField(default=datetime.now)
+
+        
+    def __str__(self):
+        return self.user.username  
  
 class Like(models.Model):
     
